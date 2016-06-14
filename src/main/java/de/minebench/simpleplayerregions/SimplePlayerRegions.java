@@ -42,7 +42,8 @@ public class SimplePlayerRegions extends JavaPlugin {
     private int yMin;
     private SimpleDateFormat dateFormat;
 
-    private Map<String, Integer> permGroups;
+    private Map<String, PermGroup> permGroups;
+    private PermGroup defaultGroup;
 
     public void onEnable() {
         worldEdit = (WorldEditPlugin) getServer().getPluginManager().getPlugin("WorldEdit");
@@ -64,12 +65,14 @@ public class SimplePlayerRegions extends JavaPlugin {
             dateFormat = new SimpleDateFormat(getConfig().getDefaults().getString("dateformat"));
         }
         permGroups = new HashMap<>();
-        ConfigurationSection groupSection = getConfig().getConfigurationSection("perworldcounts");
-        for(String group : groupSection.getKeys(false)) {
-            int count = groupSection.getInt(group, 0);
-            if(count > 0) {
-                permGroups.put(group.toLowerCase(), count);
-                Permission perm = new Permission(getName().toLowerCase() + ".count." + group.toLowerCase());
+        ConfigurationSection groupSection = getConfig().getConfigurationSection("groups");
+        for(String groupName : groupSection.getKeys(false)) {
+            int count = groupSection.getInt(groupName + ".max-region-per-world", -1);
+            int length = groupSection.getInt(groupName + ".max-region-side-length", -1);
+            if(count > -1 || length > -1) {
+                PermGroup group = new PermGroup(groupName, count, length);
+                permGroups.put(groupName.toLowerCase(), group);
+                Permission perm = new Permission(group.getPermission());
                 try {
                     getServer().getPluginManager().addPermission(perm);
                 } catch(IllegalArgumentException e) {
@@ -77,6 +80,7 @@ public class SimplePlayerRegions extends JavaPlugin {
                 }
             }
         }
+        defaultGroup = permGroups.get("default");
     }
 
     public String getMessage(String key, String... repl) {
@@ -117,12 +121,50 @@ public class SimplePlayerRegions extends JavaPlugin {
         }
         int count = regions.getRegionCountOfPlayer(getWorldGuard().wrapPlayer(player));
 
-        for(Map.Entry<String, Integer> group : permGroups.entrySet()) {
-            if(group.getValue() > count && player.hasPermission(getName().toLowerCase() + ".count." + group.getKey())) {
+        for(PermGroup group : permGroups.values()) {
+            if(group.getMaxCount() > count && player.hasPermission(group.getPermission())) {
                 return true;
             }
         }
 
-        return false;
+        return defaultGroup != null && defaultGroup.getMaxCount() > count;
+    }
+
+    public boolean checkRegionSize(Player player, int size) {
+        for(PermGroup group : permGroups.values()) {
+            if(group.getSideLength() > size && player.hasPermission(group.getPermission())) {
+                return true;
+            }
+        }
+
+        return defaultGroup != null && defaultGroup.getSideLength() > size;
+    }
+
+    class PermGroup {
+        private String name;
+        private int maxCount;
+        private int sideLength;
+
+        PermGroup(String name, int maxCount, int sideLength) {
+            this.name = name;
+            this.maxCount = maxCount;
+            this.sideLength = sideLength;
+        }
+
+        public String getPermission() {
+            return getDescription().getName().toLowerCase() + ".group." + getName().toLowerCase();
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getMaxCount() {
+            return maxCount;
+        }
+
+        public int getSideLength() {
+            return sideLength;
+        }
     }
 }

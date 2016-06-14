@@ -42,3 +42,6 @@ permissions:
    ${project.artifactId}.command.define.unlimited:
       description: Gives permission to define unlimited regions (bypassing the quotas)
       default: op
+   ${project.artifactId}.command.define.oversized:
+      description: Gives permission to define unlimited regions (bypassing the quotas)
+      default: op

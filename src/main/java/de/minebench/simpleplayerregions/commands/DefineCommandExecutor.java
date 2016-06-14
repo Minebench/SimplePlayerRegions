@@ -115,6 +115,12 @@ public class DefineCommandExecutor implements CommandExecutor {
             return true;
         }
 
+        int size = selection.getWidth() > selection.getLength() ? selection.getWidth() : selection.getLength();
+        if(!sender.hasPermission(command.getPermission() + ".oversized") && !plugin.checkRegionSize(player, size)) {
+            sender.sendMessage(plugin.getMessage("selection-to-big", "world", player.getWorld().getName()));
+            return true;
+        }
+
         RegionAdder task = new RegionAdder(plugin.getWorldGuard(), regions, region);
         task.setOwnersInput(new String[]{playerName});
         ListenableFuture<?> future = plugin.getWorldGuard().getExecutorService().submit(task);
