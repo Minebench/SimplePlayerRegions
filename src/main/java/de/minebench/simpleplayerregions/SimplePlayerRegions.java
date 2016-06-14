@@ -84,7 +84,7 @@ public class SimplePlayerRegions extends JavaPlugin {
     }
 
     public String getMessage(String key, String... repl) {
-        String msg =  getConfig().getString(key);
+        String msg =  getConfig().getString("lang." + key);
         if(msg == null) {
             return ChatColor.RED + getName() + ": Unknown language key " + ChatColor.GOLD + key;
         }
