@@ -9,7 +9,7 @@ commands:
       aliases: [spr]
       description: General adminstration plugin command
       usage: /<command> [reload]
-      permission: ${project.artifactId}.admincommand
+      permission: ${project.artifactId}.command.admin
       permission-message: You don't have the permission <permission>
    define:
       aliases: [def]
