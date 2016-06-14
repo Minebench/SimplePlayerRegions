@@ -103,11 +103,13 @@ public class DefineCommandExecutor implements CommandExecutor {
             return true;
         }
 
-        ApplicableRegionSet set = regions.getApplicableRegions(region);
+        if(!sender.hasPermission(command.getPermission() + ".overlap")) {
+            ApplicableRegionSet set = regions.getApplicableRegions(region);
 
-        if(set.size() > 0) {
-            sender.sendMessage(plugin.getMessage("overlapping-regions", "world", player.getWorld().getName()));
-            return true;
+            if(set.size() > 0) {
+                sender.sendMessage(plugin.getMessage("overlapping-regions", "world", player.getWorld().getName()));
+                return true;
+            }
         }
 
         if(!sender.hasPermission(command.getPermission() + ".unlimited") && !plugin.checkRegionCount(player, player.getWorld())) {
