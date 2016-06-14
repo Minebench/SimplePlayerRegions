@@ -1,0 +1,12 @@
+ymax: 255
+ymin: 45
+dateformat: ddMMyy
+perworldcounts:
+  garten: 1
+lang:
+  regionformat: %playername%_%date%
+  no-selection: &cPlease select an area first!
+  unsupported-selectiontype: &cThe selection type %type% is not supported by WorldGuard!
+  world-not-enabled: &cWorldGuard is not enabled in the world %world%!
+  overlapping-regions: &cSorry. There is already a region defined here!
+  too-many-regions: &cYou already reached the maximum ammount of regions you can define in the world %world%!

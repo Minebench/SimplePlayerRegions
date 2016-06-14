@@ -1,0 +1,44 @@
+name: ${project.name}
+main: ${project.groupId}.${project.artifactId}.${project.name}
+version: '${minecraft.plugin.version}'
+description: ${project.description}
+authors: [Phoenix616]
+depends: [WorldEdit, WorldGuard]
+commands:
+   ${project.artifactId}:
+      aliases: [spr]
+      description: General adminstration plugin command
+      usage: /<command> [reload]
+      permission: ${project.artifactId}.admincommand
+      permission-message: You don't have the permission <permission>
+   define:
+      aliases: [def]
+      description: Command to define a region
+      usage: /<command> [<playername>]
+      permission: ${project.artifactId}.command.define
+      permission-message: You don't have the permission <permission>
+permissions:
+   ${project.artifactId}.command.admin:
+      description: Gives permission to the plugin command
+      default: op
+   ${project.artifactId}.command.admin.reload:
+      description: Gives permission to reload the plugin
+      default: op
+   ${project.artifactId}.command.define:
+      description: Gives permission to use the define command
+      default: op
+   ${project.artifactId}.command.define.others:
+      description: Gives permission to define regions for other players
+      default: op
+   ${project.artifactId}.command.define.overlap:
+      description: Gives permission to define regions over other regions
+      default: op
+   ${project.artifactId}.command.define.setymax:
+      description: Gives permission to set the top y value
+      default: op
+   ${project.artifactId}.command.define.setymin:
+      description: Gives permission to set the lower y value
+      default: op
+   ${project.artifactId}.command.define.unlimited:
+      description: Gives permission to define unlimited regions (bypassing the quotas)
+      default: op
