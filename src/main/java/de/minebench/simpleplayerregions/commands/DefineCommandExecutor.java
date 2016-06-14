@@ -96,8 +96,10 @@ public class DefineCommandExecutor implements CommandExecutor {
         }
         if(selection instanceof CuboidSelection) {
             region = new ProtectedCuboidRegion(regionName, pntMin, pntMax);
+            plugin.getWorldEdit().setSelection(player, new CuboidSelection(player.getWorld(), pntMin, pntMax));
         } else if(selection instanceof Polygonal2DSelection){
             region = new ProtectedPolygonalRegion(regionName, ((Polygonal2DSelection) selection).getNativePoints(), yMin, yMax);
+            plugin.getWorldEdit().setSelection(player, new Polygonal2DSelection(player.getWorld(), ((Polygonal2DSelection) selection).getNativePoints(), yMin, yMax));
         } else {
             sender.sendMessage(plugin.getMessage("unsupported-selectiontype", "type", selection.getRegionSelector().getTypeName()));
             return true;
