@@ -115,7 +115,6 @@ public class DefineCommandExecutor implements CommandExecutor {
             return true;
         }
 
-        // This will not do what we think it does
         RegionAdder task = new RegionAdder(plugin.getWorldGuard(), regions, region);
         task.setOwnersInput(new String[]{playerName});
         ListenableFuture<?> future = plugin.getWorldGuard().getExecutorService().submit(task);
