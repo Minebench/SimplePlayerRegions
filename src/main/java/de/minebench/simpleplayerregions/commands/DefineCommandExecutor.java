@@ -77,7 +77,7 @@ public class DefineCommandExecutor implements CommandExecutor {
         int yMin = plugin.getMinY();
         int yMax = plugin.getMaxY();
         if(sender.hasPermission(command.getPermission() + ".setymin")) {
-            yMax = selection.getNativeMinimumPoint().getBlockY();
+            yMin = selection.getNativeMinimumPoint().getBlockY();
         } else {
             pntMin.setY(plugin.getMinY());
         }
@@ -88,11 +88,12 @@ public class DefineCommandExecutor implements CommandExecutor {
         }
 
         ProtectedRegion region;
-        String regionName = getRegionName(playerName).toLowerCase();
+        String regionBaseName = getRegionName(playerName).toLowerCase();
+        String regionName = regionBaseName;
         int i = 0;
         while(regions.hasRegion(regionName)) {
             i++;
-            regionName += "_" + i;
+            regionName = regionBaseName + "_" + i;
         }
         if(selection instanceof CuboidSelection) {
             region = new ProtectedCuboidRegion(regionName, pntMin, pntMax);
