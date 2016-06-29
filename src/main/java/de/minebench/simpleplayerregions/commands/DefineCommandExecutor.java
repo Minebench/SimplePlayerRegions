@@ -5,10 +5,12 @@ import com.sk89q.worldedit.BlockVector;
 import com.sk89q.worldedit.bukkit.selections.CuboidSelection;
 import com.sk89q.worldedit.bukkit.selections.Polygonal2DSelection;
 import com.sk89q.worldedit.bukkit.selections.Selection;
-import com.sk89q.worldguard.bukkit.RegionContainer;
 import com.sk89q.worldguard.bukkit.commands.AsyncCommandHelper;
 import com.sk89q.worldguard.bukkit.commands.task.RegionAdder;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
+import com.sk89q.worldguard.protection.flags.DefaultFlag;
+import com.sk89q.worldguard.protection.flags.FlagContext;
+import com.sk89q.worldguard.protection.flags.InvalidFlagFormat;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion;
@@ -21,9 +23,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.logging.Level;
 
 /**
  * Copyright 2016 Max Lee (https://github.com/Phoenix616/)
@@ -123,6 +124,14 @@ public class DefineCommandExecutor implements CommandExecutor {
         if(!sender.hasPermission(command.getPermission() + ".oversized") && !plugin.checkRegionSize(player, size)) {
             sender.sendMessage(plugin.getMessage("selection-to-big", "world", player.getWorld().getName()));
             return true;
+        }
+
+        try {
+            region.setFlag(DefaultFlag.TELE_LOC, DefaultFlag.TELE_LOC.parseInput(
+                    FlagContext.create().setSender(sender).setInput("here").setObject("region", region).build()
+            ));
+        } catch (InvalidFlagFormat e) {
+            plugin.getLogger().log(Level.SEVERE, "Error while setting teleport flag!", e);
         }
 
         RegionAdder task = new RegionAdder(plugin.getWorldGuard(), regions, region);
