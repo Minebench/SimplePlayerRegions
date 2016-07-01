@@ -80,12 +80,12 @@ public class DefineCommandExecutor implements CommandExecutor {
         if(sender.hasPermission(command.getPermission() + ".setymin")) {
             yMin = selection.getNativeMinimumPoint().getBlockY();
         } else {
-            pntMin.setY(plugin.getMinY());
+            pntMin = pntMin.setY(plugin.getMinY()).toBlockPoint();
         }
         if(sender.hasPermission(command.getPermission() + ".setymax")) {
             yMax = selection.getNativeMaximumPoint().getBlockY();
         } else {
-            pntMax.setY(plugin.getMaxY());
+            pntMax = pntMax.setY(plugin.getMaxY()).toBlockPoint();
         }
 
         ProtectedRegion region;
