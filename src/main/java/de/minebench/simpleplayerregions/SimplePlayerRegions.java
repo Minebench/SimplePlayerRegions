@@ -132,7 +132,7 @@ public class SimplePlayerRegions extends JavaPlugin {
 
     public boolean checkRegionSize(Player player, int size) {
         for(PermGroup group : permGroups.values()) {
-            if(group.getSideLength() > size && player.hasPermission(group.getPermission())) {
+            if(group.getSideLength() >= size && player.hasPermission(group.getPermission())) {
                 return true;
             }
         }
