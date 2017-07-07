@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,7 +51,12 @@ public class SimplePlayerRegions extends JavaPlugin {
         worldGuard = (WorldGuardPlugin) getServer().getPluginManager().getPlugin("WorldGuard");
         loadConfig();
         getCommand(getName().toLowerCase()).setExecutor(new PluginCommandExecutor(this));
-        getCommand("define").setExecutor(new DefineCommandExecutor(this));
+        try {
+            getCommand("define").setExecutor(new DefineCommandExecutor(this));
+        } catch (NoSuchMethodException | ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
+            getLogger().log(Level.SEVERE, "Error while setting up WorldGuard reflections for define command", e);
+            getServer().getPluginManager().disablePlugin(this);
+        }
     }
 
     public void loadConfig() {

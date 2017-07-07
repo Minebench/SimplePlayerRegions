@@ -1,10 +1,10 @@
 package de.minebench.simpleplayerregions.commands;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.sk89q.worldedit.BlockVector;
 import com.sk89q.worldedit.bukkit.selections.CuboidSelection;
 import com.sk89q.worldedit.bukkit.selections.Polygonal2DSelection;
 import com.sk89q.worldedit.bukkit.selections.Selection;
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.bukkit.commands.AsyncCommandHelper;
 import com.sk89q.worldguard.bukkit.commands.task.RegionAdder;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
@@ -23,7 +23,10 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Calendar;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
 /**
@@ -43,9 +46,19 @@ import java.util.logging.Level;
  */
 public class DefineCommandExecutor implements CommandExecutor {
     private final SimplePlayerRegions plugin;
+    private final Method wgGetExecutorService;
+    private final Method wgSubmit;
+    private final Class<?> wgLf;
+    private final Method wgWrap;
 
-    public DefineCommandExecutor(SimplePlayerRegions plugin) {
+    public DefineCommandExecutor(SimplePlayerRegions plugin) throws NoSuchMethodException, ClassNotFoundException, InvocationTargetException, IllegalAccessException {
         this.plugin = plugin;
+
+        wgGetExecutorService = plugin.getWorldGuard().getClass().getMethod("getExecutorService");
+        Object les = wgGetExecutorService.invoke(plugin.getWorldGuard());
+        wgSubmit = les.getClass().getMethod("submit", Callable.class);
+        wgLf = Class.forName("com.sk89q.worldguard.internal.guava.util.concurrent.ListenableFuture");
+        wgWrap = AsyncCommandHelper.class.getMethod("wrap", wgLf, WorldGuardPlugin.class, CommandSender.class);
     }
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -137,16 +150,23 @@ public class DefineCommandExecutor implements CommandExecutor {
 
         RegionAdder task = new RegionAdder(plugin.getWorldGuard(), regions, region);
         task.setOwnersInput(new String[]{playerName});
-        ListenableFuture<?> future = plugin.getWorldGuard().getExecutorService().submit(task);
-
-        AsyncCommandHelper.wrap(future, plugin.getWorldGuard(), player)
-                .formatUsing(regionName)
-                .registerWithSupervisor("Adding the region '%s'...")
-                .sendMessageAfterDelay("(Please wait... adding '%s'...)")
-                .thenRespondWith(
-                        "A new region has been made named '%s'.",
-                        "Failed to add the region '%s'");
-
+        try {
+            Object les = wgGetExecutorService.invoke(plugin.getWorldGuard());
+            //ListeningExecutorService les = plugin.getWorldGuard().getExecutorService();
+            Object future = wgSubmit.invoke(les, task);
+            //ListenableFuture<?> future = les.submit(task);
+            AsyncCommandHelper ach = (AsyncCommandHelper) wgWrap.invoke(null, future, plugin.getWorldGuard(), player);
+            //AsyncCommandHelper ach = AsyncCommandHelper.wrap(future, plugin.getWorldGuard(), player);
+            ach.formatUsing(regionName)
+                    .registerWithSupervisor("Adding the region '%s'...")
+                    .sendMessageAfterDelay("(Please wait... adding '%s'...)")
+                    .thenRespondWith(
+                            "A new region has been made named '%s'.",
+                            "Failed to add the region '%s'");
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            plugin.getLogger().log(Level.SEVERE, "Reflection error while saving region " + region.getId(), e);
+            sender.sendMessage(ChatColor.RED + "Error while saving region "  + region.getId() + "! Please contact an admin.");
+        }
         return true;
     }
 
