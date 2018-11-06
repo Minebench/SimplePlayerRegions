@@ -1,6 +1,8 @@
 package de.minebench.simpleplayerregions;
 
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import de.minebench.simpleplayerregions.commands.DefineCommandExecutor;
@@ -35,9 +37,6 @@ import java.util.logging.Level;
 
 public class SimplePlayerRegions extends JavaPlugin {
 
-    private WorldEditPlugin worldEdit;
-    private WorldGuardPlugin worldGuard;
-
     private int yMax;
     private int yMin;
     private SimpleDateFormat dateFormat;
@@ -46,8 +45,6 @@ public class SimplePlayerRegions extends JavaPlugin {
     private PermGroup defaultGroup;
 
     public void onEnable() {
-        worldEdit = (WorldEditPlugin) getServer().getPluginManager().getPlugin("WorldEdit");
-        worldGuard = (WorldGuardPlugin) getServer().getPluginManager().getPlugin("WorldGuard");
         loadConfig();
         getCommand(getName().toLowerCase()).setExecutor(new PluginCommandExecutor(this));
         getCommand("define").setExecutor(new DefineCommandExecutor(this));
@@ -94,14 +91,6 @@ public class SimplePlayerRegions extends JavaPlugin {
         return ChatColor.translateAlternateColorCodes('&', msg);
     }
 
-    public WorldEditPlugin getWorldEdit() {
-        return worldEdit;
-    }
-
-    public WorldGuardPlugin getWorldGuard() {
-        return worldGuard;
-    }
-
     public int getMaxY() {
         return yMax;
     }
@@ -115,11 +104,11 @@ public class SimplePlayerRegions extends JavaPlugin {
     }
 
     public boolean checkRegionCount(Player player, World world) {
-        RegionManager regions = getWorldGuard().getRegionManager(world);
+        RegionManager regions = WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
         if(regions == null) {
             return true;
         }
-        int count = regions.getRegionCountOfPlayer(getWorldGuard().wrapPlayer(player));
+        int count = regions.getRegionCountOfPlayer(WorldGuardPlugin.inst().wrapPlayer(player));
 
         for(PermGroup group : permGroups.values()) {
             if(group.getMaxCount() > count && player.hasPermission(group.getPermission())) {

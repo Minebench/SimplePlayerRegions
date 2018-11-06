@@ -2,16 +2,26 @@ package de.minebench.simpleplayerregions.commands;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.sk89q.worldedit.BlockVector;
-import com.sk89q.worldedit.bukkit.selections.CuboidSelection;
-import com.sk89q.worldedit.bukkit.selections.Polygonal2DSelection;
-import com.sk89q.worldedit.bukkit.selections.Selection;
+import com.sk89q.worldedit.IncompleteRegionException;
+import com.sk89q.worldedit.LocalSession;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.bukkit.BukkitPlayer;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.regions.CuboidRegion;
+import com.sk89q.worldedit.regions.Polygonal2DRegion;
+import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.regions.RegionSelector;
+import com.sk89q.worldedit.regions.selector.CuboidRegionSelector;
+import com.sk89q.worldedit.regions.selector.Polygonal2DRegionSelector;
+import com.sk89q.worldguard.LocalPlayer;
+import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.bukkit.commands.AsyncCommandHelper;
-import com.sk89q.worldguard.bukkit.commands.task.RegionAdder;
+import com.sk89q.worldguard.commands.task.RegionAdder;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
-import com.sk89q.worldguard.protection.flags.DefaultFlag;
 import com.sk89q.worldguard.protection.flags.FlagContext;
+import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.InvalidFlagFormat;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
@@ -25,10 +35,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Calendar;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
 /**
@@ -60,16 +67,22 @@ public class DefineCommandExecutor implements CommandExecutor {
         }
 
         Player player = (Player) sender;
-
-        Selection selection = plugin.getWorldEdit().getSelection(player);
+        BukkitPlayer wePlayer = BukkitAdapter.adapt(player);
+        LocalSession session = WorldEdit.getInstance().getSessionManager().get(wePlayer);
+        Region selection = null;
+        try {
+            selection = session.getSelection(wePlayer.getWorld());
+        } catch (IncompleteRegionException e) {
+            e.printStackTrace();
+        }
         if(selection == null) {
-            sender.sendMessage(plugin.getMessage("no-selection", "world", player.getWorld().getName()));
+            sender.sendMessage(plugin.getMessage("no-selection", "world", wePlayer.getWorld().getName()));
             return true;
         }
 
-        RegionManager regions = plugin.getWorldGuard().getRegionContainer().get(player.getWorld());
+        RegionManager regions = WorldGuard.getInstance().getPlatform().getRegionContainer().get(wePlayer.getWorld());
         if(regions == null) {
-            sender.sendMessage(plugin.getMessage("world-not-enabled", "world", player.getWorld().getName()));
+            sender.sendMessage(plugin.getMessage("world-not-enabled", "world", wePlayer.getWorld().getName()));
             return true;
         }
 
@@ -78,19 +91,19 @@ public class DefineCommandExecutor implements CommandExecutor {
             playerName = args[0];
         }
 
-        BlockVector pntMin = new BlockVector(selection.getNativeMinimumPoint());
-        BlockVector pntMax = new BlockVector(selection.getNativeMaximumPoint());
+        BlockVector3 pntMin = selection.getMinimumPoint();
+        BlockVector3 pntMax = selection.getMaximumPoint();
         int yMin = plugin.getMinY();
         int yMax = plugin.getMaxY();
         if(sender.hasPermission(command.getPermission() + ".setymin")) {
-            yMin = selection.getNativeMinimumPoint().getBlockY();
+            yMin = selection.getMinimumPoint().getBlockY();
         } else {
-            pntMin = pntMin.setY(plugin.getMinY()).toBlockPoint();
+            pntMin = pntMin.withY(plugin.getMinY());
         }
         if(sender.hasPermission(command.getPermission() + ".setymax")) {
-            yMax = selection.getNativeMaximumPoint().getBlockY();
+            yMax = selection.getMaximumPoint().getBlockY();
         } else {
-            pntMax = pntMax.setY(plugin.getMaxY()).toBlockPoint();
+            pntMax = pntMax.withY(plugin.getMaxY());
         }
 
         ProtectedRegion region;
@@ -101,51 +114,53 @@ public class DefineCommandExecutor implements CommandExecutor {
             i++;
             regionName = regionBaseName + "_" + i;
         }
-        if(selection instanceof CuboidSelection) {
+        RegionSelector regionSelector;
+        if(selection instanceof CuboidRegion) {
             region = new ProtectedCuboidRegion(regionName, pntMin, pntMax);
-            plugin.getWorldEdit().setSelection(player, new CuboidSelection(player.getWorld(), pntMin, pntMax));
-        } else if(selection instanceof Polygonal2DSelection){
-            region = new ProtectedPolygonalRegion(regionName, ((Polygonal2DSelection) selection).getNativePoints(), yMin, yMax);
-            plugin.getWorldEdit().setSelection(player, new Polygonal2DSelection(player.getWorld(), ((Polygonal2DSelection) selection).getNativePoints(), yMin, yMax));
+            regionSelector = new CuboidRegionSelector(wePlayer.getWorld(), pntMin, pntMax);
+        } else if(selection instanceof Polygonal2DRegion){
+            region = new ProtectedPolygonalRegion(regionName, ((Polygonal2DRegion) selection).getPoints(), yMin, yMax);
+            regionSelector = new Polygonal2DRegionSelector(wePlayer.getWorld(), ((Polygonal2DRegion) selection).getPoints(), yMin, yMax);
         } else {
-            sender.sendMessage(plugin.getMessage("unsupported-selectiontype", "type", selection.getRegionSelector().getTypeName()));
+            sender.sendMessage(plugin.getMessage("unsupported-selectiontype", "type", session.getRegionSelector(wePlayer.getWorld()).getTypeName()));
             return true;
         }
+        session.setRegionSelector(wePlayer.getWorld(), regionSelector);
 
         if(!sender.hasPermission(command.getPermission() + ".overlap")) {
             ApplicableRegionSet set = regions.getApplicableRegions(region);
 
             if(set.size() > 0) {
-                sender.sendMessage(plugin.getMessage("overlapping-regions", "world", player.getWorld().getName()));
+                sender.sendMessage(plugin.getMessage("overlapping-regions", "world", wePlayer.getWorld().getName()));
                 return true;
             }
         }
 
         if(!sender.hasPermission(command.getPermission() + ".unlimited") && !plugin.checkRegionCount(player, player.getWorld())) {
-            sender.sendMessage(plugin.getMessage("too-many-regions", "world", player.getWorld().getName()));
+            sender.sendMessage(plugin.getMessage("too-many-regions", "world", wePlayer.getWorld().getName()));
             return true;
         }
 
         int size = selection.getWidth() > selection.getLength() ? selection.getWidth() : selection.getLength();
         if(!sender.hasPermission(command.getPermission() + ".oversized") && !plugin.checkRegionSize(player, size)) {
-            sender.sendMessage(plugin.getMessage("selection-to-big", "world", player.getWorld().getName()));
+            sender.sendMessage(plugin.getMessage("selection-to-big", "world", wePlayer.getWorld().getName()));
             return true;
         }
 
         try {
-            region.setFlag(DefaultFlag.TELE_LOC, DefaultFlag.TELE_LOC.parseInput(
-                    FlagContext.create().setSender(sender).setInput("here").setObject("region", region).build()
+            region.setFlag(Flags.TELE_LOC, Flags.TELE_LOC.parseInput(
+                    FlagContext.create().setSender(wePlayer).setInput("here").setObject("region", region).build()
             ));
         } catch (InvalidFlagFormat e) {
             plugin.getLogger().log(Level.SEVERE, "Error while setting teleport flag!", e);
         }
 
-        RegionAdder task = new RegionAdder(plugin.getWorldGuard(), regions, region);
+        RegionAdder task = new RegionAdder(regions, region);
         task.setOwnersInput(new String[]{playerName});
         
-        ListeningExecutorService les = plugin.getWorldGuard().getExecutorService();
+        ListeningExecutorService les = WorldGuard.getInstance().getExecutorService();
         ListenableFuture<?> future = les.submit(task);
-        AsyncCommandHelper ach = AsyncCommandHelper.wrap(future, plugin.getWorldGuard(), player);
+        AsyncCommandHelper ach = AsyncCommandHelper.wrap(future, WorldGuardPlugin.inst(), player);
         ach.formatUsing(regionName)
                 .registerWithSupervisor("Adding the region '%s'...")
                 .sendMessageAfterDelay("(Please wait... adding '%s'...)")
