@@ -7,6 +7,7 @@ import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.BukkitPlayer;
+import com.sk89q.worldedit.command.util.AsyncCommandHelper;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.regions.Polygonal2DRegion;
@@ -14,10 +15,7 @@ import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.regions.RegionSelector;
 import com.sk89q.worldedit.regions.selector.CuboidRegionSelector;
 import com.sk89q.worldedit.regions.selector.Polygonal2DRegionSelector;
-import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import com.sk89q.worldguard.bukkit.commands.AsyncCommandHelper;
 import com.sk89q.worldguard.commands.task.RegionAdder;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.FlagContext;
@@ -160,7 +158,7 @@ public class DefineCommandExecutor implements CommandExecutor {
         
         ListeningExecutorService les = WorldGuard.getInstance().getExecutorService();
         ListenableFuture<?> future = les.submit(task);
-        AsyncCommandHelper ach = AsyncCommandHelper.wrap(future, WorldGuardPlugin.inst(), player);
+        AsyncCommandHelper ach = AsyncCommandHelper.wrap(future, WorldGuard.getInstance().getSupervisor(), wePlayer, WorldGuard.getInstance().getExceptionConverter());
         ach.formatUsing(regionName)
                 .registerWithSupervisor("Adding the region '%s'...")
                 .sendMessageAfterDelay("(Please wait... adding '%s'...)")
