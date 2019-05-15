@@ -1,13 +1,11 @@
 package de.minebench.simpleplayerregions.commands;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
 import com.sk89q.worldedit.IncompleteRegionException;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.BukkitPlayer;
-import com.sk89q.worldedit.command.util.AsyncCommandHelper;
+import com.sk89q.worldedit.command.util.AsyncCommandBuilder;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.regions.Polygonal2DRegion;
@@ -155,16 +153,13 @@ public class DefineCommandExecutor implements CommandExecutor {
 
         RegionAdder task = new RegionAdder(regions, region);
         task.setOwnersInput(new String[]{playerName});
-        
-        ListeningExecutorService les = WorldGuard.getInstance().getExecutorService();
-        ListenableFuture<?> future = les.submit(task);
-        AsyncCommandHelper ach = AsyncCommandHelper.wrap(future, WorldGuard.getInstance().getSupervisor(), wePlayer, WorldGuard.getInstance().getExceptionConverter());
-        ach.formatUsing(regionName)
-                .registerWithSupervisor("Adding the region '%s'...")
+
+        AsyncCommandBuilder.wrap(task, wePlayer)
+                .registerWithSupervisor(WorldGuard.getInstance().getSupervisor(), String.format("Adding the region '%s'...", region.getId()))
+                .onSuccess(String.format("A new region has been made named '%s'.", region.getId()), null)
                 .sendMessageAfterDelay("(Please wait... adding '%s'...)")
-                .thenRespondWith(
-                        "A new region has been made named '%s'.",
-                        "Failed to add the region '%s'");
+                .onFailure(String.format("Failed to add the region '%s'", region.getId()), WorldGuard.getInstance().getExceptionConverter())
+                .buildAndExec(WorldGuard.getInstance().getExecutorService());
         return true;
     }
 
