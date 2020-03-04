@@ -14,6 +14,7 @@ import com.sk89q.worldedit.regions.RegionSelector;
 import com.sk89q.worldedit.regions.selector.CuboidRegionSelector;
 import com.sk89q.worldedit.regions.selector.Polygonal2DRegionSelector;
 import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.commands.task.RegionAdder;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.FlagContext;
@@ -145,7 +146,7 @@ public class DefineCommandExecutor implements CommandExecutor {
 
         try {
             region.setFlag(Flags.TELE_LOC, Flags.TELE_LOC.parseInput(
-                    FlagContext.create().setSender(wePlayer).setInput("here").setObject("region", region).build()
+                    FlagContext.create().setSender(WorldGuardPlugin.inst().wrapPlayer(player)).setInput("here").setObject("region", region).build()
             ));
         } catch (InvalidFlagFormat e) {
             plugin.getLogger().log(Level.SEVERE, "Error while setting teleport flag!", e);
